@@ -13,7 +13,7 @@ int main(int argc,char *argv[])
 	/* first what are we going to send and where are we going to send it? */
 	int portno =		80;
 	char *host =		"localhost";
-	char *message_fmt = "HEAD /video.mkv HTTP/1.0\r\n\r\n";
+	char *message_fmt = "HEAD /video.mp4 HTTP/1.0\r\n\r\n";
 
 	struct hostent *server;
 	struct sockaddr_in serv_addr;
