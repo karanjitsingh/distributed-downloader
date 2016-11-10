@@ -1,24 +1,4 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <string.h>
-#include <unistd.h>
-#include <netdb.h>
-
-typedef enum _ClientStatus { WAITING,CONNECTED,TRANSFERING } ClientStatus;
-
-typedef struct _ClientNode {
-	struct sockaddr_in cadd;
-	int id;
-	ClientStatus status;
-} ClientNode;
-
-typedef struct _FileInfo {
-	long long length;
-} FileInfo;
-
-void error(const char *msg) { perror(msg); exit(0); }
+#include "header.h"
 
 FileInfo * generateFileInfo(char * response, int size) {
 
@@ -104,10 +84,41 @@ FileInfo * requestFile(char * host, char * message_fmt) {
 	return generateFileInfo(response,4096*sizeof(char));
 }
 
+void probeNodes() {
+	//printf("Probing nodes...\n");
+
+
+	int sock;
+	struct sockaddr_in address;
+	sock=socket(AF_INET,SOCK_DGRAM,0);
+	address.sin_family=AF_INET;
+	address.sin_addr.s_addr=inet_addr("255.255.255.255");
+
+
+	int broadcastEnable=1;
+	int ret=setsockopt(sock, SOL_SOCKET, SO_BROADCAST, &broadcastEnable, sizeof(broadcastEnable));
+
+
+	address.sin_port=htons(11111);
+
+	int status=1;
+
+	int len=sizeof(address);
+	
+
+	//printf("Sending broadcast packet...\n");
+	sendto(sock,&status,sizeof(int),0,(struct sockaddr *)&address,len);
+
+}
+
 int main(int argc, char ** argv) {
+	
 
 	char *host =		"localhost";
 	char *message_fmt = "HEAD /video.mp4 HTTP/1.0\r\n\r\n";
+	char *url = "/video.mp4";
+
+	int i;
 
 	//Get file
 	FileInfo * file = requestFile(host,message_fmt);
@@ -115,45 +126,127 @@ int main(int argc, char ** argv) {
 
 
 	//Run prober as fork
-	int proberPID;
+	/*int proberPID;
 	if(proberPID=fork()==0) {
-		execvp("./prober",NULL);
+		while(1) {
+			probeNodes();
+			sleep(3);
+		}
 		exit(0);
-	}
+	}*/
 
 
-
+	ClientNode ** connectedNodes;
+	ClientNode * node;
 
 
 	int defSock, newSock, len;
 	char * buffer;
 	struct sockaddr_in sadd, cadd;
-
 	socklen_t addr_size;
+
 	defSock = socket(PF_INET, SOCK_STREAM, 0);
-	
+
+
+
+	//Set socket options
+	setsockopt(defSock, SOL_SOCKET, SO_REUSEADDR, &(int){ 1 }, sizeof(int));
+	struct timeval tv;
+	tv.tv_sec = 5;  /* 30 Secs Timeout */
+	tv.tv_usec = 0;  // Not init'ing this can cause strange errors
+	setsockopt(defSock, SOL_SOCKET, SO_RCVTIMEO, (char *)&tv,sizeof(struct timeval));	
+
+
 	sadd.sin_family = AF_INET;
-	sadd.sin_port = htons(12345);
-	sadd.sin_addr.s_addr = INADDR_ANY;
+	sadd.sin_port = htons(13576);
+	sadd.sin_addr.s_addr = inet_addr("127.0.0.1");
 
-	bind(defSock, (struct sockaddr *) &sadd, sizeof(sadd));
 
-	if(listen(defSock,5)==0)
-		printf("Listening\n");
-	else
-		printf("Error\n");
 
 	len = sizeof(cadd);
-	newSock = accept(defSock, (struct sockaddr *) &cadd, &len);
+
+
+	srand(time(NULL));
+	int nodeCount=0;
+
+
+	while(1) {
+
+		bind(defSock, (struct sockaddr *) &sadd, sizeof(sadd));
+
+		if(listen(defSock,SOMAXCONN)==0)
+			printf("Listening\n");
+		else
+			printf("Error\n");
+
+		newSock = accept(defSock, (struct sockaddr *) &cadd, &len);
+
+		if(newSock == -1) {
+			printf("Cannot find more nodes. %d\n",nodeCount);
+			break;
+		}
+
+		nodeCount++;
+
+		if(nodeCount ==1)
+			connectedNodes = (ClientNode **)malloc(nodeCount * sizeof(ClientNode *));
+		else
+			connectedNodes = (ClientNode **)realloc(connectedNodes,nodeCount * sizeof(ClientNode *));
+
+		node = (ClientNode *) malloc(sizeof(ClientNode));
+		connectedNodes[nodeCount-1] = node;
+
+
+		int cap;
+		read(newSock,&cap,sizeof(cap));
+		write(newSock, &nodeCount, sizeof(nodeCount));
+
+		printf("New node with cap %d\n",cap);
+
+		node->cap = cap;
+		node->status = ESTABLISHED;
+		node->id=nodeCount;
+		node->socket = newSock;
+
+		write(newSock, node, sizeof(ClientNode));
+
+		int size = strlen(host);
+		write(newSock, &size, sizeof(size));
+		write(newSock, host, size);
+
+		size = strlen(url);
+		write(newSock, &size, sizeof(size));
+		write(newSock, url, size);
+
+			
+
+		//close(newSock);
+	}
 	
-	int size;
-	read(newSock,&size,sizeof(size));
 
-	//write(newSock,out,size);
+	/*int total=0;;
+
+	for(i=0;i<nodeCount;i++) {
+		total += connectedNodes[i]->cap;
+	}
+
+	if(file->length < total) {
+
+		for(i=0;i<nodeCount;i++) {
+		total += connectedNodes[i]->cap;
+	}		
 
 
-	close(newSock);
+	}
+	else {
 
+	}
+*/
+
+
+
+
+	
 
 	return 0;
 }

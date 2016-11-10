@@ -1,21 +1,13 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <string.h>
-#include <unistd.h>
-#include <netdb.h>
+#include "header.h"
 
-typedef enum _ClientStatus { WAITING,CONNECTED,TRANSFERING } ClientStatus;
-
-typedef struct _Client {
-	ClientStatus status;
-} Client;
+#define CAPACITY 20480
 
 int main(int argc, char ** argv) {
 
-	Client self;
+	ClientNode self;
 	self.status = WAITING;
+	char * host;
+	char * url;
 
 	int status;
 
@@ -27,45 +19,75 @@ int main(int argc, char ** argv) {
 	char buf[25];
 	struct sockaddr_in sadd,cadd;
 	sock=socket(AF_INET,SOCK_DGRAM,0);
+
+
+
+
+
 	sadd.sin_family=AF_INET;
-	
-
 	sadd.sin_addr.s_addr=inet_addr("0.0.0.0");
-
 	sadd.sin_port=htons(11111);
+
+
 	int result=bind(sock,(struct sockaddr *)&sadd,sizeof(sadd));
 	int len=sizeof(cadd);
 
 	recvfrom(sock,&status,sizeof(int),0,(struct sockaddr *)&cadd,&len);
+
+
+	printf("%d.%d.%d.%d\n", (int)(cadd.sin_addr.s_addr&0xFF), (int)((cadd.sin_addr.s_addr&0xFF00)>>8), (int)((cadd.sin_addr.s_addr&0xFF0000)>>16), (int)((cadd.sin_addr.s_addr&0xFF000000)>>24));
 
 	printf("Received broadcast packet. Status: %d\n", status);
 
 
 
 
-
-
-
-
 	int clientSocket;
 	int n;
-	int pid;
-	//struct sockaddr_in sadd;
+	int id;
 	
 	clientSocket = socket(PF_INET, SOCK_STREAM, 0);
 	
+
 	sadd.sin_family = AF_INET;
 	sadd.sin_port = htons(13576);
-	sadd.sin_addr.s_addr = inet_addr("127.0.0.1");
+	sadd.sin_addr.s_addr = inet_addr("192.168.43.225");
 	memset(sadd.sin_zero, '\0', sizeof sadd.sin_zero);	
 
 	len = sizeof sadd;
 	while(connect(clientSocket, (struct sockaddr *) &sadd, len));
 
-	int size=100;
+	self.status = CONNECTED;
+
+	int size=CAPACITY;
+	int r;
 	write(clientSocket, &size, sizeof(size));
-	
+	read(clientSocket, &r, sizeof(r));
+	read(clientSocket, (ClientNode * )&self, sizeof(ClientNode));
+
+	read(clientSocket, &size,sizeof(size));
+	host = (char *) malloc(size);
+	read(clientSocket, host,size);
+
+	read(clientSocket, &size,sizeof(size));
+	url = (char *) malloc(size);
+	read(clientSocket, url,size);
+
+
+	read(clientSocket, &r, sizeof(r));
+
+
+	printf("Server return: \n",r);
+
+	printf("ID      : %d\n",self.id);
+	printf("Cap     : %d\n",self.cap);
+	printf("Status  : %d\n",self.status);
+	printf("Host    : %s\n",host);
+	printf("URL     : %s\n",url);
+
 	close(clientSocket);
+
+	self.status = ESTABLISHED;
 
 	return 0;
 }
