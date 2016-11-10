@@ -18,6 +18,8 @@ typedef struct _ClientNode {
 	ClientStatus status;
 	int pid;
 	int socket;
+	int bytesFrom;
+	int byteLength;
 } ClientNode;
 
 typedef struct _FileInfo {

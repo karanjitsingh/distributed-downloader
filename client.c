@@ -35,7 +35,7 @@ int main(int argc, char ** argv) {
 	recvfrom(sock,&status,sizeof(int),0,(struct sockaddr *)&cadd,&len);
 
 
-	printf("%d.%d.%d.%d\n", (int)(cadd.sin_addr.s_addr&0xFF), (int)((cadd.sin_addr.s_addr&0xFF00)>>8), (int)((cadd.sin_addr.s_addr&0xFF0000)>>16), (int)((cadd.sin_addr.s_addr&0xFF000000)>>24));
+	//printf("%d.%d.%d.%d\n", (int)(cadd.sin_addr.s_addr&0xFF), (int)((cadd.sin_addr.s_addr&0xFF00)>>8), (int)((cadd.sin_addr.s_addr&0xFF0000)>>16), (int)((cadd.sin_addr.s_addr&0xFF000000)>>24));
 
 	printf("Received broadcast packet. Status: %d\n", status);
 
@@ -51,7 +51,7 @@ int main(int argc, char ** argv) {
 
 	sadd.sin_family = AF_INET;
 	sadd.sin_port = htons(13576);
-	sadd.sin_addr.s_addr = inet_addr("192.168.43.225");
+	sadd.sin_addr.s_addr = inet_addr("127.0.0.1");
 	memset(sadd.sin_zero, '\0', sizeof sadd.sin_zero);	
 
 	len = sizeof sadd;
@@ -63,7 +63,6 @@ int main(int argc, char ** argv) {
 	int r;
 	write(clientSocket, &size, sizeof(size));
 	read(clientSocket, &r, sizeof(r));
-	read(clientSocket, (ClientNode * )&self, sizeof(ClientNode));
 
 	read(clientSocket, &size,sizeof(size));
 	host = (char *) malloc(size);
@@ -72,15 +71,17 @@ int main(int argc, char ** argv) {
 	read(clientSocket, &size,sizeof(size));
 	url = (char *) malloc(size);
 	read(clientSocket, url,size);
+	
 
-
-	read(clientSocket, &r, sizeof(r));
+	read(clientSocket, (ClientNode * )&self, sizeof(ClientNode));
 
 
 	printf("Server return: \n",r);
 
 	printf("ID      : %d\n",self.id);
 	printf("Cap     : %d\n",self.cap);
+	printf("From    : %d\n",self.bytesFrom);
+	printf("Length  : %d\n",self.byteLength);
 	printf("Status  : %d\n",self.status);
 	printf("Host    : %s\n",host);
 	printf("URL     : %s\n",url);

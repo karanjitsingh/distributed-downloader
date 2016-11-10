@@ -170,7 +170,7 @@ int main(int argc, char ** argv) {
 	int nodeCount=0;
 
 
-	while(1) {
+	//while(1) {
 
 		bind(defSock, (struct sockaddr *) &sadd, sizeof(sadd));
 
@@ -183,7 +183,7 @@ int main(int argc, char ** argv) {
 
 		if(newSock == -1) {
 			printf("Cannot find more nodes. %d\n",nodeCount);
-			break;
+			//break;
 		}
 
 		nodeCount++;
@@ -208,7 +208,6 @@ int main(int argc, char ** argv) {
 		node->id=nodeCount;
 		node->socket = newSock;
 
-		write(newSock, node, sizeof(ClientNode));
 
 		int size = strlen(host);
 		write(newSock, &size, sizeof(size));
@@ -221,31 +220,62 @@ int main(int argc, char ** argv) {
 			
 
 		//close(newSock);
-	}
+	//}
 	
 
-	/*int total=0;;
+	int total=0;
+	int byteTotal = 10;
+	int current=-1;
 
 	for(i=0;i<nodeCount;i++) {
 		total += connectedNodes[i]->cap;
+
 	}
 
-	if(file->length < total) {
+
+	//Sort nodes here
+
+	if(byteTotal < total) {
 
 		for(i=0;i<nodeCount;i++) {
-		total += connectedNodes[i]->cap;
-	}		
+
+			current++;
+			connectedNodes[i]->bytesFrom = current;
+			if(byteTotal-current>=connectedNodes[i]->cap){
+				connectedNodes[i]->byteLength = connectedNodes[i]->cap;
+				current += connectedNodes[i]->cap;
+			}
+			else{
+				connectedNodes[i]->byteLength = byteTotal-current;
+				current = byteTotal;
+			}
+
+
+			printf("ID      : %d\n",connectedNodes[i]->id);
+			printf("Cap     : %d\n",connectedNodes[i]->cap);
+			printf("From    : %d\n",connectedNodes[i]->bytesFrom);
+			printf("Length  : %d\n",connectedNodes[i]->byteLength);
+			printf("Status  : %d\n",connectedNodes[i]->status);
+
+
+			write(connectedNodes[i]->socket, node, sizeof(ClientNode));
+
+			close(connectedNodes[i]->socket);
+
+		}
 
 
 	}
 	else {
+		//while(current < byteTotal)
 
 	}
-*/
 
 
 
 
+
+	
 	
 
 	return 0;
