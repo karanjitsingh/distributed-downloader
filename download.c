@@ -50,15 +50,18 @@ void downloadFile(char * host, char * message_fmt) {
 	
 	received = 0;
 	FILE *file;
-	file = fopen("video.mp4","wb");  // w for write, b for binary
+	file = fopen("file.bin","wb");  // w for write, b for binary
 	
 
 	
-	int x=0;
+	int x=4;
 
-	while(x<300) {
+	bytes = read(sockfd,response+x,4);
+
+	while(1) {
 		bytes = read(sockfd,response+x,1);
-		//response[4]='\0';
+		response[x+1]='\0';
+		printf("%s", response+x);
 		if (bytes < 0){
 			error("ERROR reading response from socket");
 			return;
@@ -66,21 +69,19 @@ void downloadFile(char * host, char * message_fmt) {
 		if (bytes == 0)
 			return;
 
-		//printf("%s", response);
 
 		if(x>=3) {
-			response[x-3+1] = '\0';
-			printf("%s", response + x - 3);
-			//if(strcmp(response + x-3,"\r\n\r\n") == 0){
-			//	break;
-			//}
+			response[x+1] = '\0';
+			//printf("%s", response + x - 3);
+			if(strcmp(response + x-3,"\r\n\r\n") == 0){
+				break;
+			}
 		}
 
 		x++;
 
 
 	}
-	return;
 
 	printf("Now reading...");
 
@@ -107,10 +108,10 @@ int main() {
 	
 	char *host =		"localhost";
 	char message_fmt[2084];
-	char *url = "/video.mp4";
+	char *url = "/abc.txt";
 
 
-	sprintf(message_fmt,"GET %s HTTP/1.0\r\n\r\n",url,1,4);
+	sprintf(message_fmt,"GET %s HTTP/1.0\r\nRange: bytes=%d-%d\r\n\r\n",url,0,1500);
 
 
 	downloadFile(host,message_fmt);
